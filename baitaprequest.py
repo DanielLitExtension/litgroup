@@ -229,21 +229,28 @@ def update_product_inventory(product_id, variant_id, new_quantity):
     response = requests.post(f"{base_url}inventory_levels/set.json", headers=get_headers(), json=payload)
     return handle_response(response, "Product inventory updated successfully", "Failed to update product inventory")
 
-def update_product_price(product_id, new_price):
+def update_product_price(product_id, variant_prices):
+
+    product_response = requests.get(f"{base_url}products/{product_id}.json", headers=get_headers())
+    product_data = handle_response(product_response, "Product retrieved", "Failed to retrieve product")
+    
+    if not product_data or not product_data.get('product'):
+        print("Failed to retrieve product data")
+        return None
     payload = {
         "product": {
             "variants": [
                 {
-                    "price": new_price
-                }
+                    "id": variant["id"], 
+                    "price": variant_prices.get(variant["id"], variant["price"])
+                } 
+                for variant in product_data['product']['variants']
             ]
         }
     }
     
     response = requests.put(f"{base_url}products/{product_id}.json", headers=get_headers(), json=payload)
-    
-    return handle_response(response, "Product price updated successfully", "Failed to update product price")
-
+    return handle_response(response, "Product price updated successfully for specified variants", "Failed to update product price")
 def upload_product_image(product_id, image_url):
     payload = {
         "image": {
@@ -259,7 +266,6 @@ def upload_product_image(product_id, image_url):
 def update_recently_created_products():
     products = get_products()
     new_quantity = 100
-    new_price = 39099999
     sample_image_url = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2020/6/30/816260/Cho-1.jpg"
     
     if products and products.get('products') and len(products['products']) >= 2:
@@ -269,8 +275,13 @@ def update_recently_created_products():
             product_id = product['id']
             
             if product['variants']:
+                variant_prices = {}
+                for variant in product['variants']:
+                    new_price = input(f"Enter input {variant['id']}: ")
+                    variant_prices[variant['id']] = new_price
+                
+                update_product_price(product_id, variant_prices)
                 variant_id = product['variants'][0]['id']
-                update_product_price(product_id, new_price)
                 upload_product_image(product_id, sample_image_url)                
                 update_product_inventory(product_id, variant_id, new_quantity)
             
@@ -291,18 +302,18 @@ def main():
     create_order()
     update_recently_created_products()
 
-    resources_to_delete = {
-        'custom_collections': get_custom_collections,
-        'orders': get_orders,
-        'customers': get_customers,
-        'products': get_products
-    }
+    # resources_to_delete = {
+    #     'custom_collections': get_custom_collections,
+    #     'orders': get_orders,
+    #     'customers': get_customers,
+    #     'products': get_products
+    # }
 
-    for resource_type, get_func in resources_to_delete.items():
-        resources = get_func()
-        if resources and resources.get(resource_type):
-            for resource in resources[resource_type]:
-                delete_resource(resource_type, resource['id'])
+    # for resource_type, get_func in resources_to_delete.items():
+    #     resources = get_func()
+    #     if resources and resources.get(resource_type):
+    #         for resource in resources[resource_type]:
+    #             delete_resource(resource_type, resource['id'])
 
 if __name__ == "__main__":
     main()
