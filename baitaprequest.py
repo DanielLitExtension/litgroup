@@ -259,7 +259,7 @@ def upload_product_image(product_id, image_url):
 def update_recently_created_products():
     products = get_products()
     new_quantity = 100
-    new_price = "39099999"
+    new_price = 39099999
     sample_image_url = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2020/6/30/816260/Cho-1.jpg"
     
     if products and products.get('products') and len(products['products']) >= 2:
