@@ -173,6 +173,8 @@ def create_order():
     response = requests.post(f"{base_url}/orders.json", headers=get_headers(), json=payload)
     return handle_response(response, "Create order success", "Create order failed")
 
+
+
 def enable_inventory_tracking(variant_id):
     payload = {
         "variant": {
@@ -227,10 +229,39 @@ def update_product_inventory(product_id, variant_id, new_quantity):
     response = requests.post(f"{base_url}inventory_levels/set.json", headers=get_headers(), json=payload)
     return handle_response(response, "Product inventory updated successfully", "Failed to update product inventory")
 
-def update_recently_created_products():
+def update_product_price(product_id, new_price):
+    payload = {
+        "product": {
+            "variants": [
+                {
+                    "price": new_price
+                }
+            ]
+        }
+    }
+    
+    response = requests.put(f"{base_url}products/{product_id}.json", headers=get_headers(), json=payload)
+    
+    return handle_response(response, "Product price updated successfully", "Failed to update product price")
 
+def upload_product_image(product_id, image_url):
+    payload = {
+        "image": {
+            "src": image_url
+        }
+    }
+    
+    response = requests.post(f"{base_url}products/{product_id}/images.json", headers=get_headers(), json=payload)
+    
+    return handle_response(response, "Product image uploaded successfully", "Failed to upload product image")
+
+
+def update_recently_created_products():
     products = get_products()
     new_quantity = 100
+    new_price = "39099999"
+    sample_image_url = "https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2020/6/30/816260/Cho-1.jpg"
+    
     if products and products.get('products') and len(products['products']) >= 2:
         recent_products = products['products'][-2:]
         
@@ -239,9 +270,11 @@ def update_recently_created_products():
             
             if product['variants']:
                 variant_id = product['variants'][0]['id']
+                update_product_price(product_id, new_price)
+                upload_product_image(product_id, sample_image_url)                
                 update_product_inventory(product_id, variant_id, new_quantity)
             
-        print("Updated inventory for two most recent products")
+        print("Updated price, image, and inventory for two most recent products")
     else:
         print("Not enough products to update")
 
@@ -258,18 +291,18 @@ def main():
     create_order()
     update_recently_created_products()
 
-    # resources_to_delete = {
-    #     'custom_collections': get_custom_collections,
-    #     'orders': get_orders,
-    #     'customers': get_customers,
-    #     'products': get_products
-    # }
+    resources_to_delete = {
+        'custom_collections': get_custom_collections,
+        'orders': get_orders,
+        'customers': get_customers,
+        'products': get_products
+    }
 
-    # for resource_type, get_func in resources_to_delete.items():
-    #     resources = get_func()
-    #     if resources and resources.get(resource_type):
-    #         for resource in resources[resource_type]:
-    #             delete_resource(resource_type, resource['id'])
+    for resource_type, get_func in resources_to_delete.items():
+        resources = get_func()
+        if resources and resources.get(resource_type):
+            for resource in resources[resource_type]:
+                delete_resource(resource_type, resource['id'])
 
 if __name__ == "__main__":
     main()
